@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -8,6 +9,11 @@ import (
 	"os"
 	"strings"
 )
+
+// Response はクライアントに返すレスポンスの形式を定義する構造体です。
+type Response struct {
+	Message string `json:"message"`
+}
 
 func uploadFile(w http.ResponseWriter, r *http.Request) {
 	setupCORS(&w, r)
@@ -46,7 +52,19 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tempFile.Write(fileBytes)
-	fmt.Fprintf(w, "Successfully Uploaded File: %s\n", handler.Filename)
+
+	// JSONレスポンスを作成
+	response := Response{
+		Message: fmt.Sprintf("Successfully Uploaded File: %s", handler.Filename),
+	}
+	responseData, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, "Failed to generate JSON response", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(responseData)
 }
 
 func setupCORS(w *http.ResponseWriter, req *http.Request) {
